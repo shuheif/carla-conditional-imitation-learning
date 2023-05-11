@@ -2,8 +2,8 @@ from collections import OrderedDict
 import torch
 from torch import nn
 
-N_COMMANDS = 4
-N_CONTROL_OUTPUTS = 3
+N_COMMANDS = 8
+N_CONTROL_OUTPUTS = 2
 
 class CILModel(nn.Module):
     def __init__(self):
@@ -70,7 +70,8 @@ class CILModel(nn.Module):
             nn.Linear(256, 256),
             nn.ReLU(),
             nn.Dropout(0.5),
-            nn.Linear(256, N_CONTROL_OUTPUTS)
+            nn.Linear(256, N_CONTROL_OUTPUTS),
+            nn.Tanh(),
         )
 
     def select_branch(self, branches, one_hot):
@@ -89,7 +90,7 @@ class CILModel(nn.Module):
         convoluted_image = self.conv_layers(image)
         flattened = self.flatten(convoluted_image)
         image_network_output = self.fully_connected_layers(flattened)
-        branch_outputs = [control(image_network_output) for control in self.branches]
+        branch_outputs = [branch(image_network_output) for branch in self.branches]
         branch_outputs = torch.stack(branch_outputs, dim=1)
         control_outputs = self.select_branch(branch_outputs, command)
         return control_outputs
